@@ -4,6 +4,7 @@ import gr.aueb.cf.schoolapp.dto.RegionReadOnlyDTO;
 import gr.aueb.cf.schoolapp.dto.TeacherInsertDTO;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -13,6 +14,7 @@ import java.util.List;
 @RequestMapping("/teachers")
 public class TeacherController {
 
+    @GetMapping("/insert")
     public String getTeacherForm(Model model) {
         model.addAttribute("teacherInsertDTO", TeacherInsertDTO.empty());
 //        model.addAttribute("regionsReadOnlyDTO", regions());
