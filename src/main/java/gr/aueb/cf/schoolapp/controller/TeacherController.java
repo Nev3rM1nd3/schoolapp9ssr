@@ -75,7 +75,9 @@ public class TeacherController {
     @GetMapping({"", "/"})
     public String getPaginatedTeachers(@PageableDefault(page = 0, size = 5, sort = "lastname") Pageable pageable,
                                        Model model) {
-        Page<TeacherReadOnlyDTO> teachersPage = teacherService.getPaginatedTeachers(pageable);
+//        Page<TeacherReadOnlyDTO> teachersPage = teacherService.getPaginatedTeachers(pageable);
+        Page<TeacherReadOnlyDTO> teachersPage = teacherService.getPaginatedTeachersDeletedFalse(pageable);
+
         //        Page<TeacherReadOnlyDTO> teachersPage = new PageImpl<>(Stream.of(
 //                new TeacherReadOnlyDTO("ab123", "Pavlos", "Antoniou", "1234", "Athens"),
 //                new TeacherReadOnlyDTO("ab124", "Kostas", "Lazaris", "1234", "Athens"),
@@ -131,6 +133,26 @@ public class TeacherController {
     public String teacherSuccess(Model model) {
         return "teacher-success";
     }
+
+    @PostMapping("/delete/{uuid}")
+    public String deleteTeacher(@PathVariable UUID uuid, Model model,
+                                RedirectAttributes redirectAttributes) {
+
+        try {
+            TeacherReadOnlyDTO readOnlyDTO = teacherService.deleteTeacherByUUID(uuid);
+            redirectAttributes.addFlashAttribute("teacherReadOnlyDTO", readOnlyDTO);
+            return "redirect:/teachers/delete-success";
+        } catch (EntityNotFoundException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            return "teachers";
+        }
+    }
+
+    @GetMapping("/delete-success")
+    public String deleteSuccess() {
+        return "delete-teacher-success";
+    }
+
 
     @ModelAttribute("regionsReadOnlyDTO")
     public List<RegionReadOnlyDTO> regions() {
