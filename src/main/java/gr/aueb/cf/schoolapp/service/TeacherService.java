@@ -14,6 +14,7 @@ import gr.aueb.cf.schoolapp.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,10 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
 import java.util.UUID;
 
-@Service                        //IoC Container
-@RequiredArgsConstructor        //Dependency Injection
-@Slf4j                          //Logger
-public class TeacherService implements ITeacherService{
+@Service                        // IoC Container
+@RequiredArgsConstructor        // DI
+@Slf4j                          // Logger
+public class TeacherService implements ITeacherService {
 
     private final TeacherRepository teacherRepository;
     private final RegionRepository regionRepository;
@@ -40,27 +41,31 @@ public class TeacherService implements ITeacherService{
 
     @Override
     @PreAuthorize("hasAuthority('INSERT_TEACHER')")
-    @Transactional(rollbackFor = {EntityAlreadyExistsException.class, EntityInvalidArgumentException.class})
+    @Transactional(rollbackFor = { EntityAlreadyExistsException.class, EntityInvalidArgumentException.class} )
     public TeacherReadOnlyDTO saveTeacher(TeacherInsertDTO dto)
             throws EntityAlreadyExistsException, EntityInvalidArgumentException {
+
         try {
             if (dto.vat() != null && teacherRepository.findByVat(dto.vat()).isPresent()) {
-                throw new EntityAlreadyExistsException("Teacher with vat=" + dto.vat() + "already exists");
+                throw new EntityAlreadyExistsException("Teacher with vat=" + dto.vat() + " already exists");
             }
 
             Region region = regionRepository.findById(dto.regionId())
-                    .orElseThrow(() -> new EntityInvalidArgumentException("Region id=" + dto.regionId() + "invalid"));
+                    .orElseThrow(() -> new EntityInvalidArgumentException("Region id=" + dto.regionId() + " invalid"));
 
             Teacher teacher = mapper.mapToTeacherEntity(dto);
             region.addTeacher(teacher);
-            teacherRepository.save(teacher);        //saved teacher
+            teacherRepository.save(teacher);        // saved teacher
             log.info("Teacher with vat={} saved successfully", dto.vat());
             return mapper.mapToTeacherReadOnlyDTO(teacher);
-        }catch (EntityAlreadyExistsException e) {
-            log.error("Save failed for teacher with vat={}. Teacher already exists", dto.vat());     //Structured Logging
+        } catch (EntityAlreadyExistsException e) {
+            log.warn("Save failed for teacher with vat={}. Teacher already exists", dto.vat());     // Structured Logging
             throw e;
-        }catch (EntityInvalidArgumentException e) {
-            log.error("Save failed for teacher with vat={}. Region id={} invalid", dto.vat(), dto.regionId());     //Structure Logging
+        }  catch (DataIntegrityViolationException e) {  // race condition for insert
+            log.warn("Save failed for teacher with vat={}. Teacher exists", dto.vat());     // Structured Logging
+            throw new EntityAlreadyExistsException("Save failed for teacher with vat=" + dto.vat() + ". Teacher already exists");
+        }  catch (EntityInvalidArgumentException e) {
+            log.warn("Save failed for teacher with vat={}. Region id={} invalid", dto.vat(), dto.regionId());
             throw e;
         }
     }
@@ -91,43 +96,43 @@ public class TeacherService implements ITeacherService{
 
     @Override
     @PreAuthorize("hasAuthority('EDIT_TEACHER')")
-    @Transactional(rollbackFor = {EntityNotFoundException.class, EntityAlreadyExistsException.class, EntityInvalidArgumentException.class})
+    @Transactional(rollbackFor = { EntityNotFoundException.class, EntityAlreadyExistsException.class, EntityInvalidArgumentException.class} )
     public TeacherReadOnlyDTO updateTeacher(TeacherEditDTO dto)
             throws EntityNotFoundException, EntityAlreadyExistsException, EntityInvalidArgumentException {
-
         try {
             Teacher teacher = teacherRepository.findByUuid(dto.uuid())
-                    .orElseThrow(() -> new EntityNotFoundException("Teacher with uuid=" + dto.uuid() + "not found"));
+                    .orElseThrow(() -> new EntityNotFoundException("Teacher with uuid=" + dto.uuid() + " not found"));
 
             teacher.setFirstname(dto.firstname());
             teacher.setLastname(dto.lastname());
             if (!teacher.getVat().equals(dto.vat())) {
                 if (teacherRepository.findByVat(dto.vat()).isPresent()) {
-                    throw new EntityAlreadyExistsException("Teacher with vat=" + dto.vat() + "already exists");
+                    throw new EntityAlreadyExistsException("Teacher with vat=" + dto.vat() + " already exists");
                 }
                 teacher.setVat(dto.vat());
             }
-            if (Objects.equals(dto.regionId(), teacher.getRegion().getId())) {
+
+            if (!Objects.equals(dto.regionId(), teacher.getRegion().getId())) {
                 Region region = regionRepository.findById(dto.regionId())
-                        .orElseThrow(() -> new EntityInvalidArgumentException("Region id=" + dto.regionId() + "invalid"));
+                        .orElseThrow(() -> new EntityInvalidArgumentException("Region id=" + dto.regionId() + " invalid"));
                 Region oldRegion = teacher.getRegion();
                 if (oldRegion != null) {
                     oldRegion.removeTeacher(teacher);
                 }
                 region.addTeacher(teacher);
             }
-            teacherRepository.save(teacher);        //προαιρετικό
+
+            teacherRepository.save(teacher);    // προαιρετικό
             log.info("Teacher with uuid={} updated successfully", dto.uuid());
             return mapper.mapToTeacherReadOnlyDTO(teacher);
-
-        }catch (EntityNotFoundException e) {
-            log.error("Update failed for teacher with uuid={}. Teacher not found", dto.uuid(), e);
+        } catch (EntityNotFoundException e) {
+            log.warn("Update failed for teacher with uuid={}. Teacher not found", dto.uuid());
             throw e;
-        }catch (EntityAlreadyExistsException e) {
-            log.error("Update failed for teacher with uuid={}. Teacher with vat={} already exists", dto.uuid(), dto.vat(), e);
+        } catch (EntityAlreadyExistsException e) {
+            log.warn("Update failed for teacher with uuid={}. Teacher with vat={} already exists", dto.uuid(), dto.vat());
             throw e;
-        }catch (EntityInvalidArgumentException e) {
-            log.error("Update failed for teacher with uuid={}. Region id={} invalid", dto.uuid(), dto.regionId(), e);
+        } catch (EntityInvalidArgumentException e) {
+            log.warn("Update failed for teacher with uuid={}. Region id={} invalid", dto.uuid(), dto.regionId());
             throw e;
         }
     }
@@ -141,12 +146,12 @@ public class TeacherService implements ITeacherService{
                     .orElseThrow(() -> new EntityNotFoundException("Teacher with uuid=" + uuid + " not found"));
 
             teacher.softDelete();
-//            No save needed if Teacher is managed
+            // No save needed if Teacher is managed
 //            teacherRepository.save(teacher);
             log.info("Teacher with uuid={} deleted successfully", uuid);
             return mapper.mapToTeacherReadOnlyDTO(teacher);
         } catch (EntityNotFoundException e) {
-            log.error("Update failed for teacher with uuid={}. Teacher not found", uuid, e);
+            log.warn("Delete failed for teacher uuid={}. Teacher not found", uuid);
 
             // Automatic rollback due to @Transactional annotation
             throw e;
@@ -157,13 +162,14 @@ public class TeacherService implements ITeacherService{
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @Transactional(readOnly = true)
     public TeacherEditDTO getTeacherByUUID(UUID uuid) throws EntityNotFoundException {
+
         try {
             Teacher teacher = teacherRepository.findByUuid(uuid)
-                    .orElseThrow(() -> new EntityNotFoundException("Teacher with uuid=" + uuid + "not found"));
+                    .orElseThrow(() -> new EntityNotFoundException("Teacher with uuid=" + uuid + " not found"));
             log.debug("Get teacher by uuid={} returned successfully", uuid);
             return mapper.mapToTeacherEditDTO(teacher);
-        }catch (EntityNotFoundException e) {
-            log.error("Get teacher by uuid={} failed", uuid, e);
+        } catch (EntityNotFoundException e) {
+            log.warn("Get teacher by uuid={} failed", uuid);
             throw e;
         }
     }
@@ -179,7 +185,7 @@ public class TeacherService implements ITeacherService{
             log.debug("Get non-deleted teacher by uuid={} returned successfully", uuid);
             return mapper.mapToTeacherEditDTO(teacher);
         } catch (EntityNotFoundException e) {
-            log.error("Get teacher by uuid={} failed", uuid, e);
+            log.warn("Get teacher by uuid={} failed", uuid);
             throw e;
         }
     }
