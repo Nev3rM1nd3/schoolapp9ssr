@@ -1,15 +1,27 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.16'
+	id 'org.springframework.boot' version '3.5.10'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'gr.aueb.cf'
 version = '0.0.1-SNAPSHOT'
+description = 'Demo project for Spring Boot'
 
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
+		vendor = JvmVendorSpec.AMAZON
+	}
+}
+
+bootJar {
+	archiveFileName = "schoolapp.jar"
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
 	}
 }
 
@@ -26,23 +38,17 @@ dependencies {
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testAnnotationProcessor 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-mysql'
-
 }
 
-tasks.named('test') {
+tasks.named('test', Test) {
 	useJUnitPlatform()
 }
 
 tasks.named('bootRun') {
 	sourceResources sourceSets.main
-}
