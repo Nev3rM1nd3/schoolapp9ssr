@@ -30,7 +30,7 @@ public class Role {
 
     @Setter(AccessLevel.NONE)
     @Getter(AccessLevel.PROTECTED)
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "roles_capabilities",
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "capability_id")
@@ -72,9 +72,11 @@ public class Role {
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Role role)) return false;
-        return Objects.equals(getName(), role.getName());    }
+        return Objects.equals(getName(), role.getName());
+    }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(getName());    }
+        return Objects.hashCode(getName());
+    }
 }
