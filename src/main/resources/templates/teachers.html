@@ -28,7 +28,7 @@
     <table sec:authorize="hasAuthority('VIEW_TEACHERS')">
         <thead>
         <tr>
-<!--                <th>ID</th>-->
+            <!--                <th>ID</th>-->
             <th>UUID</th>
             <th>Firstname</th>
             <th>Lastname</th>
@@ -39,21 +39,24 @@
         </tr>
         </thead>
         <tbody>
-<!--        sec:authorize="hasRole('ADMIN')-->
-<!-- Iterate over the content of the current page -->
+        <!--        sec:authorize="hasRole('ADMIN')-->
+        <!-- Iterate over the content of the current page -->
         <tr th:each="teacher : ${teachers}">
-<!--                <td th:text="${teacher.id}"></td>-->
+            <!--                <td th:text="${teacher.id}"></td>-->
             <td th:text="${teacher.uuid}"></td>
             <td th:text="${teacher.firstname}"></td>
             <td th:text="${teacher.lastname}"></td>
             <td th:text="${teacher.vat}"></td>
             <td th:text="${teacher.region}"></td>
-            <td sec:authorize="hasAnyAuthority('EDIT_TEACHER', 'DELETE_TEACHER')">
-<!--            <td>-->
-                <a th:href="@{/teachers/edit/{uuid}(uuid=${teacher.uuid})}"
+            <!--            <td sec:authorize="hasAnyAuthority('EDIT_TEACHER', 'DELETE_TEACHER')">-->
+            <td>
+                <!--            <td>-->
+                <a sec:authorize="hasAuthority('EDIT_TEACHER')"
+                   th:href="@{/teachers/edit/{uuid}(uuid=${teacher.uuid})}"
                    class="btn btn-sm btn-outline-primary">Edit
                 </a>
-                <form th:action="@{/teachers/delete/{uuid}(uuid=${teacher.uuid})}"
+                <form sec:authorize="hasAuthority('DELETE_TEACHER')"
+                      th:action="@{/teachers/delete/{uuid}(uuid=${teacher.uuid})}"
                       method="post"
                       class="d-inline"
                       onsubmit="return confirm('Delete?')">
