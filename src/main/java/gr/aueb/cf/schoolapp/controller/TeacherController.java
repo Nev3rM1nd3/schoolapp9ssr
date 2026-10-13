@@ -13,7 +13,6 @@ import gr.aueb.cf.schoolapp.validator.TeacherEditValidator;
 import gr.aueb.cf.schoolapp.validator.TeacherInsertValidator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.Banner;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -30,8 +29,8 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 @Controller
-@RequestMapping("/teachers")
 @RequiredArgsConstructor
+@RequestMapping("/teachers")
 public class TeacherController {
 
     private final ITeacherService teacherService;
@@ -39,10 +38,15 @@ public class TeacherController {
     private final TeacherInsertValidator teacherInsertValidator;
     private final TeacherEditValidator teacherEditValidator;
 
+//    @Autowired
+//    public TeacherController(ITeacherService teacherService) {
+//        this.teacherService = teacherService;
+//    }
+
     @GetMapping("/insert")
     public String getTeacherForm(Model model) {
         model.addAttribute("teacherInsertDTO", TeacherInsertDTO.empty());
-//        model.addAttribute("regionsReadOnlyDTO", regions());
+        // model.addAttribute("regionsReadOnlyDTO", regions());
         return "teacher-insert";
     }
 
@@ -54,36 +58,38 @@ public class TeacherController {
         teacherInsertValidator.validate(teacherInsertDTO, bindingResult);
 
         if (bindingResult.hasErrors()) {
-            //model.addAttribute("regionsReadOnlyDTO", regions());
+            // model.addAttribute("regionsReadOnlyDTO", regions());
             return "teacher-insert";
         }
+
         try {
-            //save teacher to DB
-//        TeacherReadOnlyDTO teacherReadOnlyDTO = new TeacherReadOnlyDTO("aacf-1234", "Παναγιώτης", "Μπέλλος");
+            // save teacher to DB
+//        TeacherReadOnlyDTO teacherReadOnlyDTO = new TeacherReadOnlyDTO("acfd-1234", "Αθανάσιος", "Ανδρούτσος");
             //model.addAttribute("teacherReadOnlyDTO", teacherReadOnlyDTO);
             TeacherReadOnlyDTO teacherReadOnlyDTO = teacherService.saveTeacher(teacherInsertDTO);
 
-            //PRG - Post-Redirect-Get
+            // PRG - Post-Redirect-Get
             redirectAttributes.addFlashAttribute("teacherReadOnlyDTO", teacherReadOnlyDTO);
             return "redirect:/teachers/success";
-        }catch (EntityAlreadyExistsException | EntityInvalidArgumentException e) {
+        } catch (EntityAlreadyExistsException | EntityInvalidArgumentException e) {
             model.addAttribute("errorMessage", e.getMessage());
             return "teacher-insert";
         }
     }
 
-    @GetMapping({"", "/"})
+
+    @GetMapping({ "", "/" })
     public String getPaginatedTeachers(@PageableDefault(page = 0, size = 5, sort = "lastname") Pageable pageable,
                                        Model model) {
+
 //        Page<TeacherReadOnlyDTO> teachersPage = teacherService.getPaginatedTeachers(pageable);
         Page<TeacherReadOnlyDTO> teachersPage = teacherService.getPaginatedTeachersDeletedFalse(pageable);
-
-        //        Page<TeacherReadOnlyDTO> teachersPage = new PageImpl<>(Stream.of(
-//                new TeacherReadOnlyDTO("ab123", "Pavlos", "Antoniou", "1234", "Athens"),
-//                new TeacherReadOnlyDTO("ab124", "Kostas", "Lazaris", "1234", "Athens"),
-//                new TeacherReadOnlyDTO("ab125", "Eleni", "Mpoxti", "1234", "Athens"),
-//                new TeacherReadOnlyDTO("ab126", "Giwrgos", "Petrou", "1234", "Athens"),
-//                new TeacherReadOnlyDTO("ab127", "Aggeliki", "Pavlou", "1234", "Athens"))
+//        Page<TeacherReadOnlyDTO> teachersPage = new PageImpl<>(Stream.of(
+//                        new TeacherReadOnlyDTO("ab123", "Pavlos", "Pavlopoulos", "1234", "Athens"),
+//                        new TeacherReadOnlyDTO("ab124", "Nikos", "Charos", "1234", "Athens"),
+//                        new TeacherReadOnlyDTO("ab125", "Kostas", "Lazaris", "1234", "Athens"),
+//                        new TeacherReadOnlyDTO("ab126", "George", "petrou", "1234", "Athens"),
+//                        new TeacherReadOnlyDTO("ab127", "Lydia", "Spiropoulou", "1234", "Athens"))
 //                .sorted(Comparator.comparing(TeacherReadOnlyDTO::lastname))
 //                .skip(pageable.getOffset())
 //                .limit(pageable.getPageSize())
@@ -94,13 +100,13 @@ public class TeacherController {
         return "teachers";
     }
 
-    @GetMapping("/edit/{uuid}")         //path variable
+    @GetMapping("/edit/{uuid}")         // path variable
     public String getTeacherEdit(@PathVariable UUID uuid, Model model) {
         try {
 //            TeacherEditDTO teacherEditDTO = teacherService.getTeacherByUUID(uuid);
             TeacherEditDTO teacherEditDTO = teacherService.getTeacherByUUIDDeletedFalse(uuid);
             model.addAttribute("teacherEditDTO", teacherEditDTO);
-        }catch (EntityNotFoundException e) {
+        } catch (EntityNotFoundException e) {
             model.addAttribute("errorMessage", e.getMessage());
         }
         return "teacher-edit";
@@ -108,7 +114,7 @@ public class TeacherController {
 
     @PostMapping("/edit")
     public String updateTeacher(@Valid @ModelAttribute("teacherEditDTO") TeacherEditDTO teacherEditDTO,
-                                BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
+                                BindingResult bindingResult, RedirectAttributes redirectAttributes,  Model model) {
 
         teacherEditValidator.validate(teacherEditDTO, bindingResult);
         if (bindingResult.hasErrors()) {
@@ -119,19 +125,26 @@ public class TeacherController {
             TeacherReadOnlyDTO readOnlyDTO = teacherService.updateTeacher(teacherEditDTO);
             redirectAttributes.addFlashAttribute("teacherReadOnlyDTO", readOnlyDTO);
             return "redirect:/teachers/update-success";
-        }catch (EntityNotFoundException | EntityAlreadyExistsException | EntityInvalidArgumentException e) {
+        } catch (EntityNotFoundException | EntityAlreadyExistsException | EntityInvalidArgumentException e) {
             model.addAttribute("errorMessage", e.getMessage());
             return "teacher-edit";
         }
     }
 
     @GetMapping("/update-success")
-    public String updateSuccess() {
+    public String updateSuccess(Model model) {
+        if (!model.containsAttribute("teacherReadOnlyDTO")) {
+            return "redirect:/teachers";
+        }
         return "update-teacher-success";
     }
 
+
     @GetMapping("/success")
     public String teacherSuccess(Model model) {
+        if (!model.containsAttribute("teacherReadOnlyDTO")) {
+            return "redirect:/teachers";
+        }
         return "teacher-success";
     }
 
@@ -150,12 +163,15 @@ public class TeacherController {
     }
 
     @GetMapping("/delete-success")
-    public String deleteSuccess() {
+    public String deleteSuccess(Model model) {
+        if (!model.containsAttribute("teacherReadOnlyDTO")) {
+            return "redirect:/teachers";
+        }
         return "delete-teacher-success";
     }
 
 
-    @ModelAttribute("regionsReadOnlyDTO")
+    @ModelAttribute("regionsReadOnlyDTO")       // Εκτελείται πριν από κάθε request handler
     public List<RegionReadOnlyDTO> regions() {
         return regionService.findAllRegionsSortedByName();
 
