@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/login").permitAll()
                         .requestMatchers("/users/register", "/users/success").permitAll()
                         .requestMatchers("/teachers/insert").hasAuthority("INSERT_TEACHER")
+                        .requestMatchers(HttpMethod.GET, "/teachers/success").hasAuthority("INSERT_TEACHER")
                         .requestMatchers(HttpMethod.GET, "/teachers/edit/{uuid}").hasAuthority("EDIT_TEACHER")
                         .requestMatchers(HttpMethod.POST, "/teachers/edit").hasAuthority("EDIT_TEACHER")
                         .requestMatchers(HttpMethod.GET, "/teachers/update-success").hasAuthority("EDIT_TEACHER")
@@ -51,7 +52,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .formLogin(formLogin -> formLogin
-                        .loginPage("/login") // now YOU must serve GET /login
+                        .loginPage("/login")  // now YOU must serve GET /login
                         .successHandler(authSuccessHandler)
                         .failureHandler(authFailureHandler)
                 )
